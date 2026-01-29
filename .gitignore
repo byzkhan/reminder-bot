@@ -1,0 +1,19 @@
+# Data files
+reminders.json
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+.env
+
+# IDE
+.vscode/
+.idea/
+
+# Claude
+.claude/
