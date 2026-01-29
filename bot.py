@@ -1,7 +1,7 @@
 """
 Persistent Reminder Bot for Telegram
 =====================================
-This bot sends you reminders every 20 minutes until you mark them as done.
+This bot sends you reminders at the top of every hour until you mark them as done.
 
 Setup instructions are in SETUP.md
 """
@@ -15,7 +15,7 @@ from telegram.ext import Application, CommandHandler, CallbackQueryHandler, Cont
 
 # === CONFIGURATION ===
 BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "YOUR_BOT_TOKEN_HERE")
-REMINDER_INTERVAL_MINUTES = 20  # How often to nag you
+REMINDER_INTERVAL_MINUTES = 60  # How often to nag you (every hour)
 DATA_FILE = "reminders.json"
 
 # === DATA STORAGE ===
@@ -49,11 +49,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     welcome_text = """
 🔔 **Welcome to Persistent Reminder Bot!**
 
-I'll nag you every 20 minutes until you complete your tasks!
+I'll nag you at the top of every hour until you complete your tasks!
 
 **Commands:**
 • `/add <reminder>` - Add a new reminder
-• `/list` - See all active reminders  
+• `/list` - See all active reminders
 • `/done <number>` - Mark a reminder as done
 • `/remove <number>` - Delete a reminder
 • `/help` - Show this help message
@@ -63,7 +63,7 @@ I'll nag you every 20 minutes until you complete your tasks!
 `/add Call mom`
 `/add Drink water`
 
-I'll keep reminding you every 20 minutes until you mark them done! 💪
+I'll keep reminding you every hour until you mark them done! 💪
 """
     await update.message.reply_text(welcome_text, parse_mode="Markdown")
 
@@ -106,7 +106,7 @@ async def add_reminder(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         f"✅ **Reminder added!**\n\n"
         f"📝 \"{reminder_text}\"\n\n"
-        f"I'll remind you every {REMINDER_INTERVAL_MINUTES} minutes until you mark it done.\n"
+        f"I'll remind you at the top of every hour until you mark it done.\n"
         f"You have {active_count} active reminder(s).",
         parse_mode="Markdown"
     )
@@ -290,12 +290,18 @@ def main():
     # Add callback handler for inline buttons
     application.add_handler(CallbackQueryHandler(done_callback, pattern="^done:"))
     
-    # Set up the reminder job to run every X minutes
+    # Set up the reminder job to run at the top of every hour
     job_queue = application.job_queue
+
+    # Calculate seconds until the next top of hour
+    now = datetime.now()
+    next_hour = now.replace(minute=0, second=0, microsecond=0) + timedelta(hours=1)
+    seconds_until_next_hour = (next_hour - now).total_seconds()
+
     job_queue.run_repeating(
         send_reminders,
         interval=timedelta(minutes=REMINDER_INTERVAL_MINUTES),
-        first=timedelta(seconds=10)  # First reminder 10 seconds after start
+        first=timedelta(seconds=seconds_until_next_hour)  # First reminder at top of next hour
     )
     
     print("✅ Bot is running! Press Ctrl+C to stop.")
